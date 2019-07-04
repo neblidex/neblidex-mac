@@ -31,10 +31,11 @@ namespace NebliDex_Linux
 
 		public void Intro_Closed(object sender, DeleteEventArgs args)
 		{
-			if(App.main_window == null){
+			if(App.main_window == null){               
                 App.http_open_network = false;
 				Application.Quit();
 				args.RetVal = false;
+                Environment.Exit(0);
 			}
 			if(waiting != null){
 				//Allow the calling thread to continue
