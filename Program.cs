@@ -28,7 +28,7 @@ namespace NebliDex_Linux
         //Mainnet version
         public static int protocol_version = 6; //My protocol version
         public static int protocol_min_version = 6; //Minimum accepting protocol version
-        public static string version_text = "v6.0.0";
+        public static string version_text = "v6.0.1";
         public static bool run_headless = false; //If true, this software is ran in critical node mode without GUI on startup
         public static bool http_open_network = true; //This becomes false if user closes window
         public static int sqldatabase_version = 3;
@@ -40,9 +40,6 @@ namespace NebliDex_Linux
         //Version 6
         //updated Electrum servers to SSL
         //Added GRS/NEBL, BCH/BTC, LTC/BTC, MONA/BTC, MONA/LTC, ETH/BTC, ETH/LTC
-        //Dependency files that have been changed: NBitcoin/Transaction.cs, NBitcoin/Script.cs
-        //NBitcoin/DataEncoders/Base58Encoder.cs, NBitcoin/Network.cs, NBitcoin/Crypto/Hashes.cs
-        //NBitcoin/Base58Data.cs
 
         public static string App_Path = "";
         public static string App_Physical_Path = AppDomain.CurrentDomain.BaseDirectory;
