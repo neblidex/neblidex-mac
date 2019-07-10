@@ -28,7 +28,7 @@ namespace NebliDex_Linux
         //Mainnet version
         public static int protocol_version = 6; //My protocol version
         public static int protocol_min_version = 6; //Minimum accepting protocol version
-        public static string version_text = "v6.0.1";
+        public static string version_text = "v6.0.2";
         public static bool run_headless = false; //If true, this software is ran in critical node mode without GUI on startup
         public static bool http_open_network = true; //This becomes false if user closes window
         public static int sqldatabase_version = 3;
@@ -1112,6 +1112,11 @@ namespace NebliDex_Linux
             string etext = e.ToString();
             if (etext.IndexOf("MyGetResponseAsync", StringComparison.InvariantCulture) > -1)
             {
+                return true;
+            }
+            if (etext.IndexOf("MobileAuthenticatedStream", StringComparison.InvariantCulture) > -1)
+            {
+                //This error will propagate due to bug in newer versions for Mono
                 return true;
             }
             return false;
