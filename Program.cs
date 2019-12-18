@@ -26,21 +26,22 @@ namespace NebliDex_Linux
         public static int default_ui_look = 0; //UI look when ExchangeWindow opens
 
         //Mainnet version
-        public static int protocol_version = 9; //My protocol version
-        public static int protocol_min_version = 9; //Minimum accepting protocol version
-        public static string version_text = "v9.0.0";
+        public static int protocol_version = 10; //My protocol version
+        public static int protocol_min_version = 10; //Minimum accepting protocol version
+        public static string version_text = "v10.0.0";
         public static bool run_headless = false; //If true, this software is ran in critical node mode without GUI on startup
         public static bool http_open_network = true; //This becomes false if user closes window
         public static int sqldatabase_version = 3;
         public static int accountdat_version = 1; //The version of the account wallet
 
-        //Lowest testnet version: 9
-        //Lowest mainnet version: 9
+        //Lowest testnet version: 10
+        //Lowest mainnet version: 10
 
-        //Version 9
-        //Added 1 new wallet for wBTC (allows for cross-chain swap into interest earning BTC)
-        //New market (1):
-        //WBTC/BTC
+        //Version 10
+        //Allow for very small ERC20 order amounts (ideal for wBTC)
+        //Updated DAI contract to new version
+        //Fixed ETH confirmation bug
+        //Allow for new markets without protocol changes    
 
         public static string App_Path = "";
         public static string App_Physical_Path = AppDomain.CurrentDomain.BaseDirectory;
@@ -703,7 +704,7 @@ namespace NebliDex_Linux
                     { //DAI Contract
                         if (testnet_mode == false)
                         {
-                            return "0x89d24A6b4CcB1B6fAA2625fE562bDD9a23260359";
+                            return "0x6B175474E89094C44Da98b954EedeAC495271d0F"; // Version 2 of contract
                         }
                         else
                         {
@@ -1229,6 +1230,7 @@ namespace NebliDex_Linux
         public class CriticalNode
         {
             public string ip_add; //Only field populated by all nodes
+            public int total_markets = App.total_markets; //The total markets for the node, this can vary
             public string signature_ip = null; //Used to verify IP address
             public decimal ndex; //Used to get validation node, amount of ndex
             public string pubkey; //Used to verify
@@ -2129,10 +2131,17 @@ namespace NebliDex_Linux
             if (trade_wallet_blockchaintype == 6)
             {
                 block_fee1 = GetEtherContractTradeFee(Wallet.CoinERC20(MarketList[ord.market].trade_wallet));
+                if(Wallet.CoinERC20(MarketList[ord.market].trade_wallet) == true){
+                    block_fee1 = Convert.ToDecimal(double_epsilon); // The minimum trade size for ERC20 tokens
+                }
             }
             if (base_wallet_blockchaintype == 6)
             {
                 block_fee2 = GetEtherContractTradeFee(Wallet.CoinERC20(MarketList[ord.market].base_wallet));
+                if (Wallet.CoinERC20(MarketList[ord.market].base_wallet) == true)
+                {
+                    block_fee2 = Convert.ToDecimal(double_epsilon); // The minimum trade size for ERC20 tokens
+                }
             }
 
             decimal total = ord.original_amount * ord.price;
@@ -2504,10 +2513,17 @@ namespace NebliDex_Linux
                         if (trade_wallet_blockchaintype == 6)
                         {
                             block_fee1 = GetEtherContractTradeFee(Wallet.CoinERC20(MarketList[req.market].trade_wallet));
+                            if(Wallet.CoinERC20(MarketList[req.market].trade_wallet) == true){
+                                block_fee1 = Convert.ToDecimal(double_epsilon); // The minimum trade size for ERC20 tokens
+                            }   
                         }
                         if (base_wallet_blockchaintype == 6)
                         {
                             block_fee2 = GetEtherContractTradeFee(Wallet.CoinERC20(MarketList[req.market].base_wallet));
+                            if (Wallet.CoinERC20(MarketList[req.market].base_wallet) == true)
+                            {
+                                block_fee2 = Convert.ToDecimal(double_epsilon); // The minimum trade size for ERC20 tokens
+                            }
                         }
 
                         if (amount < block_fee1 || (amount * price) < block_fee2)
