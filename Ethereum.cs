@@ -25,6 +25,8 @@ namespace NebliDex_Linux
 
         public static string ETH_ATOMICSWAP_ADDRESS; //This is the address of the publicly viewable atomic swap ethereum contract
         public static string ERC20_ATOMICSWAP_ADDRESS; //This is the address of the publicly viewable atomic swap erc20 contract
+        public static string ETHERSCAN_APIKEY = "V79X3RADJJP2C3GXHFYRMAX87VPUJ3ZJRI"; // This is the APIKey to make queries to Etherscan, required by Etherscan
+        public static int ETH_BALANCE_INDEX = 0; // For every call to get balance, only 2 tokens are scanned for balance each time
         public static long ETH_CALLS = -1; //This will give each query to an ethereum API a specific ID that is not reused
 
         //Create a list of all the DNSSeeds for all electrum nodes
@@ -98,7 +100,7 @@ namespace NebliDex_Linux
                 {
                     //Etherscan
                     //Powered by Etherscan.io APIs (etherscan.io)
-                    string url = api_endpoint + "?module=account&action=balance&address=" + address + "&tag=latest";
+                    string url = api_endpoint + "?module=account&action=balance&address=" + address + "&tag=latest&apikey=" + ETHERSCAN_APIKEY;
                     string resp = HttpRequest(url, "", out timeout);
                     if (resp.Length == 0)
                     {
@@ -191,7 +193,7 @@ namespace NebliDex_Linux
                 if (api_node.type == 0)
                 {
                     //Etherscan
-                    string url = api_endpoint + "?module=proxy&action=eth_getTransactionCount&address=" + address + "&tag=latest";
+                    string url = api_endpoint + "?module=proxy&action=eth_getTransactionCount&address=" + address + "&tag=latest&apikey=" + ETHERSCAN_APIKEY;
                     string resp = HttpRequest(url, "", out timeout);
                     if (resp.Length == 0)
                     {
@@ -284,7 +286,7 @@ namespace NebliDex_Linux
                 if (api_node.type == 0)
                 {
                     //Etherscan
-                    string url = api_endpoint + "?module=proxy&action=eth_gasPrice";
+                    string url = api_endpoint + "?module=proxy&action=eth_gasPrice&apikey=" + ETHERSCAN_APIKEY;
                     string resp = HttpRequest(url, "", out timeout);
                     if (resp.Length == 0)
                     {
@@ -375,7 +377,7 @@ namespace NebliDex_Linux
                 if (api_node.type == 0)
                 {
                     //Etherscan
-                    string url = api_endpoint + "?module=proxy&action=eth_call&to=" + contract_add + "&data=" + data + "&tag=latest";
+                    string url = api_endpoint + "?module=proxy&action=eth_call&to=" + contract_add + "&data=" + data + "&tag=latest&apikey=" + ETHERSCAN_APIKEY;
                     string resp = HttpRequest(url, "", out timeout);
                     if (resp.Length == 0)
                     {
@@ -477,7 +479,7 @@ namespace NebliDex_Linux
                 if (api_node.type == 0)
                 {
                     //Etherscan
-                    string url = api_endpoint + "?module=proxy&action=eth_estimateGas&to=" + to_add + "&from=" + from_add + "&tag=latest";
+                    string url = api_endpoint + "?module=proxy&action=eth_estimateGas&to=" + to_add + "&from=" + from_add + "&tag=latest&apikey=" + ETHERSCAN_APIKEY;
                     string resp = HttpRequest(url, "", out timeout);
                     if (resp.Length == 0)
                     {
@@ -569,7 +571,7 @@ namespace NebliDex_Linux
                 {
                     //Etherscan
                     string url = api_endpoint;
-                    string postdata = "module=proxy&action=eth_sendRawTransaction&hex=" + rawhex;
+                    string postdata = "module=proxy&action=eth_sendRawTransaction&hex=" + rawhex + "&apikey=" + ETHERSCAN_APIKEY;
                     string resp = HttpRequest(url, postdata, out timeout);
                     if (resp.Length == 0)
                     {
@@ -657,7 +659,7 @@ namespace NebliDex_Linux
                 if (api_node.type == 0)
                 {
                     //Etherscan
-                    string url = api_endpoint + "?module=proxy&action=eth_getTransactionByHash&txhash=" + txhash;
+                    string url = api_endpoint + "?module=proxy&action=eth_getTransactionByHash&txhash=" + txhash + "&apikey=" + ETHERSCAN_APIKEY;
                     string resp = HttpRequest(url, "", out timeout);
                     if (resp.Length == 0)
                     {
@@ -688,7 +690,7 @@ namespace NebliDex_Linux
                     }
                     Nethereum.Hex.HexTypes.HexBigInteger tx_blocknum = new Nethereum.Hex.HexTypes.HexBigInteger(txnum);
                     //Search the current block number and compare the difference to get the number for confirmations
-                    url = api_endpoint + "?module=proxy&action=eth_blockNumber";
+                    url = api_endpoint + "?module=proxy&action=eth_blockNumber&apikey=" + ETHERSCAN_APIKEY;
                     resp = HttpRequest(url, "", out timeout);
                     if (resp.Length == 0)
                     {
@@ -1347,7 +1349,7 @@ namespace NebliDex_Linux
             string tok_contract = GetWalletERC20TokenContract(wallet);
             if (tok_contract.Length == 0) { return; } //No token contract, can't verify
             BigInteger intamount = ConvertToERC20Int(amount, GetWalletERC20TokenDecimals(wallet));
-            string approve_data = App.GenerateEthereumERC20ApproveData(contract_add, intamount);
+            string approve_data = GenerateEthereumERC20ApproveData(contract_add, intamount);
             Nethereum.Signer.TransactionChainId tx = CreateSignedEthereumTransaction(wallet, tok_contract, 0, false, 4, approve_data); //Not actually sending anything
             if (tx != null)
             {
@@ -1505,7 +1507,7 @@ namespace NebliDex_Linux
             Decimal gas_price = GetBlockchainEthereumGas();
             if (gas_price > 0)
             {
-                gas_price = gas_price * 1.5m; //Make our transactions prioritized over the rest of the network
+                gas_price = gas_price * 1.5m; //Make our transactions higher priority than normal ETH transactions
                 Decimal gas_price_diff = gas_price - blockchain_fee[6];
                 blockchain_fee[6] = Math.Round(blockchain_fee[6] + gas_price_diff / 5m, 2); //Modify the gas prices by small amounts
             }
@@ -1513,17 +1515,28 @@ namespace NebliDex_Linux
 
         public static void GetEthereumWalletBalances()
         {
+            // We only grab two addresses at a time
+            int wallet_pos = 0;
             for (int i = 0; i < WalletList.Count; i++)
             {
                 if (WalletList[i].blockchaintype == 6)
                 {
                     //This is an Eth Wallet, get the balance
-                    Decimal bal = GetBlockchainEthereumBalance(WalletList[i].address, WalletList[i].type);
-                    if (bal >= 0)
+                    if (wallet_pos == ETH_BALANCE_INDEX || wallet_pos == ETH_BALANCE_INDEX + 1)
                     {
-                        WalletList[i].balance = TruncateDecimal(bal, 8); //We only want to see up to 8 decimal places
+                        Decimal bal = GetBlockchainEthereumBalance(WalletList[i].address, WalletList[i].type);
+                        if (bal >= 0)
+                        {
+                            WalletList[i].balance = TruncateDecimal(bal, 8); //We only want to see up to 8 decimal places
+                        }
                     }
+                    wallet_pos++;
                 }
+            }
+            ETH_BALANCE_INDEX += 2;
+            if (ETH_BALANCE_INDEX >= wallet_pos)
+            {
+                ETH_BALANCE_INDEX = 0;
             }
         }
 
